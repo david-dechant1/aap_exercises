@@ -1,6 +1,6 @@
 ---
 - name: Apache Playbook
-  hosts: test
+  hosts: all
   become: true
   
   roles: 
