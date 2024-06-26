@@ -1,0 +1,67 @@
+---
+- name: Create/Add Users
+  ansible.builtin.user:
+    name: "{{ item.name }}"
+    comment: "{{ item.comment }}"
+    uid: "{{ item.uid }}"
+    password: "{{ item.password | password_hash('sha512') }}"
+    update_password: on_create 
+  loop: "{{ users }}" 
+  vars:  
+    users:
+      - name: ericam
+        comment: Erica Musterfrau
+        uid: 1010
+        password: secure
+      - name: maxm
+        comment: Max Mustermann
+        uid: 1011
+        password: secure          
+  
+- name: Copy file to /var/www/html
+  ansible.builtin.copy:
+    src: files/index.html
+    dest: '{{ webserver_path }}/index.html'
+        
+- name: Create sub dir for Max
+  ansible.builtin.command:
+    cmd: 'mkdir {{ webserver_path }}/dir_max'
+    creates: '{{ webserver_path }}/dir_max'
+    
+- name: Create sub dir for Erica
+  ansible.builtin.command:
+    cmd: 'mkdir {{ webserver_path }}/dir_erica'
+    creates: '{{ webserver_path }}/dir_erica'
+
+- name: Allow acces to dir_max 
+  ansible.builtin.command:
+    cmd: 'chown -R maxm:maxm {{ webserver_path }}/dir_max'
+
+- name: Allow acces to dir_erica 
+  ansible.builtin.command:
+    cmd: 'chown -R ericam:ericam {{ webserver_path }}/dir_erica'
+  
+#      - name: Add Facts to index.html
+#        ansible.builtin.lineinfile:
+#          path: '{{ webserver_path }}/index.html'
+#          line: "{{ ansible_fqdn }} {{ ansible_default_ipv4.address }} {{ ansible_distribution }}"
+#          regex: '^%Guten'
+#          validate: 'grep "Guten Tag" %s'
+  
+- name: Add Facts to index.html
+  ansible.builtin.lineinfile:
+    path: '{{ webserver_path }}/index.html'
+    line: '{{ web_content }}'
+    
+- name: Copy page file 
+  ansible.builtin.copy:
+    content: "{{ lookup('file', 'files/page.html') }}"
+    dest: '{{ webserver_path }}/index.html' 
+
+- name: Template config serversignature
+  ansible.builtin.template:
+    src: templates/serversignature.conf.j2
+    dest: /etc/httpd/conf.d/serversignature.conf
+    owner: root
+    group: root
+    mode: '0644'
